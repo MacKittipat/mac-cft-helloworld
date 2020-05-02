@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  LambdaFunctionName:
+    Type: String
+    Default: HelloWorld
+
+Resources:
+
+  # API Gateway
+  ApiGatewayRestApiHelloWorld:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: HelloWorldApi
+
+  ApiGatewayResourceHelloWorld:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApiHelloWorld
+      ParentId: !GetAtt ApiGatewayRestApiHelloWorld.RootResourceId
+      PathPart: !Ref LambdaFunctionName
+
+  ApiGatewayMethodHelloWorld:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      HttpMethod: ANY
+      ResourceId: !Ref ApiGatewayResourceHelloWorld
+      RestApiId: !Ref ApiGatewayRestApiHelloWorld
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      MethodResponses:
+        - StatusCode: '200'
+      Integration:
+        ConnectionType: INTERNET
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunctionHelloWorld.Arn}/invocations'
+  ApiGatewayDeploymentHelloWorld:
+    DependsOn: ApiGatewayMethodHelloWorld
+    Type: 'AWS::ApiGateway::Deployment'
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApiHelloWorld
+      StageName: prod
+
+  # Lambda Function
+  LambdaFunctionHelloWorld:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      Code:
+        ZipFile: |
+          exports.handler = async function(event) {
+            const response = {
+              statusCode: 200,
+              body: "Hello World. Build with CloudFormation",
+            };
+            return response;
+          }
+      Handler: index.handler
+      Role: arn:aws:iam::917599803305:role/LambdaAdmin
+      Runtime: nodejs12.x
+
+  LambdaPermissionHelloWorld:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !GetAtt LambdaFunctionHelloWorld.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApiHelloWorld}/*/*/${LambdaFunctionName}'
+
+Outputs:
+  LambdaFunctionHelloWorldArn:
+    Value: !GetAtt LambdaFunctionHelloWorld.Arn
+  ApiGatewayRestApiHelloWorldRootResourceId:
+    Value: !GetAtt ApiGatewayRestApiHelloWorld.RootResourceId
+  RefApiGatewayRestApiHelloWorld:
+    Value: !Ref ApiGatewayRestApiHelloWorld
+  RefApiGatewayResourceHelloWorld:
+    Value: !Ref ApiGatewayResourceHelloWorld
+  RefLambdaFunctionHelloWorld:
+    Value: !Ref LambdaFunctionHelloWorld
