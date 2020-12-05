@@ -23,18 +23,17 @@ Resources:
   ApiGatewayMethodHelloWorld:
     Type: 'AWS::ApiGateway::Method'
     Properties:
-      HttpMethod: ANY
+      HttpMethod: GET
       ResourceId: !Ref ApiGatewayResourceHelloWorld
       RestApiId: !Ref ApiGatewayRestApiHelloWorld
       ApiKeyRequired: false
       AuthorizationType: NONE
-      MethodResponses:
-        - StatusCode: '200'
       Integration:
         ConnectionType: INTERNET
-        IntegrationHttpMethod: POST
         Type: AWS_PROXY
+        IntegrationHttpMethod: POST # Always POST for AWS_PROXY
         Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunctionHelloWorld.Arn}/invocations'
+
   ApiGatewayDeploymentHelloWorld:
     DependsOn: ApiGatewayMethodHelloWorld
     Type: 'AWS::ApiGateway::Deployment'
